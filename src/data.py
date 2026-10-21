@@ -18,6 +18,14 @@ SETTING_COLUMNS = ["setting_1", "setting_2", "setting_3"]
 SENSOR_COLUMNS = [f"sensor_{i}" for i in range(1, 22)]
 COLUMN_NAMES = ["unit", "cycle"] + SETTING_COLUMNS + SENSOR_COLUMNS
 
+# The 14 sensors kept for FD001 after the analysis in notebooks/01_eda.ipynb
+# (constant sensors 1, 5, 10, 16, 18, 19 and quasi-constant sensor 6 removed).
+FD001_SENSORS = [
+    "sensor_2", "sensor_3", "sensor_4", "sensor_7", "sensor_8", "sensor_9",
+    "sensor_11", "sensor_12", "sensor_13", "sensor_14", "sensor_15",
+    "sensor_17", "sensor_20", "sensor_21",
+]
+
 
 def load_cmapss(subset="FD001", data_dir=DATA_DIR):
     """Load the train set, test set and true test RUL of one C-MAPSS subset.
