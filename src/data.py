@@ -19,8 +19,12 @@ SETTING_COLUMNS = ["setting_1", "setting_2", "setting_3"]
 SENSOR_COLUMNS = [f"sensor_{i}" for i in range(1, 22)]
 COLUMN_NAMES = ["unit", "cycle"] + SETTING_COLUMNS + SENSOR_COLUMNS
 
+# The four C-MAPSS subsets
+SUBSETS = ["FD001", "FD002", "FD003", "FD004"]
+
 # The 14 sensors kept for FD001 after the analysis in notebooks/01_eda.ipynb
 # (constant sensors 1, 5, 10, 16, 18, 19 and quasi-constant sensor 6 removed).
+# notebooks/04_all_subsets.ipynb uses the same 14 sensors for every subset.
 FD001_SENSORS = [
     "sensor_2", "sensor_3", "sensor_4", "sensor_7", "sensor_8", "sensor_9",
     "sensor_11", "sensor_12", "sensor_13", "sensor_14", "sensor_15",
@@ -47,6 +51,8 @@ def load_cmapss(subset="FD001", data_dir=DATA_DIR):
     test_rul : DataFrame
         One row per test engine with its true RUL at the last test cycle.
     """
+    if subset not in SUBSETS:
+        raise ValueError(f"Unknown subset {subset!r}, expected one of {SUBSETS}")
     data_dir = Path(data_dir)
 
     # Columns are separated by one or more spaces, so we use a regex separator.
@@ -125,6 +131,60 @@ def split_by_engine(train, val_fraction=0.2, seed=42):
     splitter = GroupShuffleSplit(n_splits=1, test_size=val_fraction, random_state=seed)
     train_idx, val_idx = next(splitter.split(train, groups=train["unit"]))
     return train.iloc[train_idx], train.iloc[val_idx]
+
+
+def add_operating_condition(df):
+    """Add a "condition" column that identifies the operating condition of each row.
+
+    The 3 operational settings (altitude, Mach number, throttle angle) take
+    only a few distinct values plus a tiny measurement noise. Rounding them
+    removes the noise, and the combination of the 3 rounded values names
+    the condition, e.g. "42_0.84_100". FD001 and FD003 have 1 condition,
+    FD002 and FD004 have 6.
+    """
+    df = df.copy()
+    # Adding 0.0 turns -0.0 into 0.0, so that tiny negative noise around
+    # zero does not create a separate condition.
+    setting_1 = df["setting_1"].round(0) + 0.0
+    setting_2 = df["setting_2"].round(2) + 0.0
+    setting_3 = df["setting_3"].round(0) + 0.0
+    df["condition"] = (
+        setting_1.map("{:g}".format) + "_"
+        + setting_2.map("{:g}".format) + "_"
+        + setting_3.map("{:g}".format)
+    )
+    return df
+
+
+def fit_condition_scaler(train, columns):
+    """Compute the mean and standard deviation of each column, per operating condition.
+
+    Must be called on the TRAINING engines only, so that no information
+    from validation or test engines is used.
+
+    Returns
+    -------
+    means, stds : DataFrames with one row per condition and one column per sensor
+    """
+    means = train.groupby("condition")[columns].mean()
+    stds = train.groupby("condition")[columns].std()
+    return means, stds
+
+
+def apply_condition_scaler(df, columns, means, stds):
+    """Normalize every row with the mean and std of ITS OWN operating condition.
+
+        normalized value = (value - mean of the condition) / std of the condition
+
+    After this, a value of 0 means "average for this flight condition",
+    so changes in the flight condition no longer hide the degradation trend.
+    """
+    df = df.copy()
+    # Look up, for every row, the mean and std of its condition
+    row_means = means.loc[df["condition"]].values
+    row_stds = stds.loc[df["condition"]].values
+    df[columns] = (df[columns].values - row_means) / row_stds
+    return df
 
 
 def find_constant_columns(df, columns):

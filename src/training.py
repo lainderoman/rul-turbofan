@@ -27,6 +27,7 @@ def train_model(
     learning_rate=1e-3,
     patience=10,
     seed=42,
+    verbose=True,
 ):
     """Train a model with the Adam optimizer, MSE loss and early stopping.
 
@@ -39,6 +40,8 @@ def train_model(
     -------
     model : the model with the weights of the best validation epoch
     history : dict with the lists "train_loss" and "val_loss" (one value per epoch)
+
+    Set verbose=False to hide the per-epoch messages.
     """
     set_seed(seed)
 
@@ -85,16 +88,19 @@ def train_model(
         else:
             epochs_without_improvement += 1
 
-        print(f"Epoch {epoch:3d} | train loss {train_loss:.4f} | val loss {val_loss:.4f}")
+        if verbose:
+            print(f"Epoch {epoch:3d} | train loss {train_loss:.4f} | val loss {val_loss:.4f}")
 
         if epochs_without_improvement >= patience:
-            print(f"Early stopping: no improvement for {patience} epochs.")
+            if verbose:
+                print(f"Early stopping: no improvement for {patience} epochs.")
             break
 
     # Restore the weights of the best epoch
     model.load_state_dict(best_weights)
     best_epoch = int(np.argmin(history["val_loss"])) + 1
-    print(f"Best epoch: {best_epoch} (val loss {best_val_loss:.4f})")
+    if verbose:
+        print(f"Best epoch: {best_epoch} (val loss {best_val_loss:.4f})")
     return model, history
 
 

@@ -3,13 +3,17 @@
 import numpy as np
 
 
-def make_windows(df, feature_columns, window_size, target_column="RUL"):
+def make_windows(df, feature_columns, window_size, target_column="RUL", stride=1):
     """Cut every engine into overlapping windows of `window_size` cycles.
 
     For an engine with cycles 1..n and window_size = 30 we get the windows
     [1..30], [2..31], ..., [n-29..n]. The target of a window is the RUL at
     its LAST cycle, i.e. the model sees the last 30 cycles and predicts the
     RUL "now".
+
+    With stride = k we keep only every k-th window, to make training faster.
+    The first window is shifted so that the window ending at the last cycle
+    (at failure) is always included. With stride = 1 nothing is skipped.
 
     Returns
     -------
@@ -24,8 +28,11 @@ def make_windows(df, feature_columns, window_size, target_column="RUL"):
         features = engine[feature_columns].values
         targets = engine[target_column].values
 
-        # "end" is the index just after the last cycle of the window
-        for end in range(window_size, len(engine) + 1):
+        # "end" is the index just after the last cycle of the window.
+        # "first_end" is chosen so that, stepping by "stride", we land
+        # exactly on the last cycle of the engine.
+        first_end = window_size + (len(engine) - window_size) % stride
+        for end in range(first_end, len(engine) + 1, stride):
             X_list.append(features[end - window_size:end])
             y_list.append(targets[end - 1])
 
