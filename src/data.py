@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+from sklearn.model_selection import GroupShuffleSplit
 
 # Folder with the original C-MAPSS .txt files.
 # It is built from the location of this file, so it works no matter
@@ -112,6 +113,18 @@ def add_test_rul(test, test_rul):
     test["RUL"] = test["true_rul"] + last_cycle - test["cycle"]
     test = test.drop(columns="true_rul")
     return test
+
+
+def split_by_engine(train, val_fraction=0.2, seed=42):
+    """Split the training data into train / validation parts BY ENGINE.
+
+    Every engine goes completely to one side, so no engine appears in both
+    parts. With the same seed this gives the same engines as in
+    notebooks/02_baselines.ipynb.
+    """
+    splitter = GroupShuffleSplit(n_splits=1, test_size=val_fraction, random_state=seed)
+    train_idx, val_idx = next(splitter.split(train, groups=train["unit"]))
+    return train.iloc[train_idx], train.iloc[val_idx]
 
 
 def find_constant_columns(df, columns):
