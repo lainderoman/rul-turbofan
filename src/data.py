@@ -32,6 +32,40 @@ FD001_SENSORS = [
 ]
 
 
+# Physical meaning of the 21 sensors (Saxena et al., 2008, Table 2):
+# sensor name -> (symbol, description)
+SENSOR_DESCRIPTIONS = {
+    "sensor_1": ("T2", "Total temperature at fan inlet"),
+    "sensor_2": ("T24", "Total temperature at LPC outlet"),
+    "sensor_3": ("T30", "Total temperature at HPC outlet"),
+    "sensor_4": ("T50", "Total temperature at LPT outlet"),
+    "sensor_5": ("P2", "Pressure at fan inlet"),
+    "sensor_6": ("P15", "Total pressure in bypass duct"),
+    "sensor_7": ("P30", "Total pressure at HPC outlet"),
+    "sensor_8": ("Nf", "Physical fan speed"),
+    "sensor_9": ("Nc", "Physical core speed"),
+    "sensor_10": ("epr", "Engine pressure ratio (P50/P2)"),
+    "sensor_11": ("Ps30", "Static pressure at HPC outlet"),
+    "sensor_12": ("phi", "Ratio of fuel flow to Ps30"),
+    "sensor_13": ("NRf", "Corrected fan speed"),
+    "sensor_14": ("NRc", "Corrected core speed"),
+    "sensor_15": ("BPR", "Bypass ratio"),
+    "sensor_16": ("farB", "Burner fuel-air ratio"),
+    "sensor_17": ("htBleed", "Bleed enthalpy"),
+    "sensor_18": ("Nf_dmd", "Demanded fan speed"),
+    "sensor_19": ("PCNfR_dmd", "Demanded corrected fan speed"),
+    "sensor_20": ("W31", "HPT coolant bleed"),
+    "sensor_21": ("W32", "LPT coolant bleed"),
+}
+
+
+def sensor_label(sensor):
+    """Short label for plots, e.g. "sensor_11" -> "s11 Ps30"."""
+    symbol = SENSOR_DESCRIPTIONS[sensor][0]
+    number = sensor.split("_")[1]
+    return f"s{number} {symbol}"
+
+
 def load_cmapss(subset="FD001", data_dir=DATA_DIR):
     """Load the train set, test set and true test RUL of one C-MAPSS subset.
 
