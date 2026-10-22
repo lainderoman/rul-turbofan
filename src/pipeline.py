@@ -5,6 +5,7 @@ import numpy as np
 from src.data import (
     FD001_SENSORS,
     add_operating_condition,
+    add_test_rul,
     add_train_rul,
     apply_condition_scaler,
     fit_condition_scaler,
@@ -26,6 +27,7 @@ def prepare_subset(subset, window_size=30, rul_cap=125, train_stride=1, split_se
 
     Returns a dict with:
         train_part, val_part      normalized data frames (one row per cycle)
+        test_part                 normalized test data frame, with the true RUL of every cycle
         X_train, y_train          training windows and their capped RUL
         X_val, y_val              validation windows and their capped RUL
         X_test                    last window of each test engine
@@ -41,6 +43,8 @@ def prepare_subset(subset, window_size=30, rul_cap=125, train_stride=1, split_se
     # 2. Operating condition of every row
     train = add_operating_condition(train)
     test = add_operating_condition(test)
+    # True (uncapped) RUL of every test cycle, from the RUL file
+    test = add_test_rul(test, test_rul)
 
     # 3. Split by engine
     train_part, val_part = split_by_engine(train, val_fraction=0.2, seed=split_seed)
@@ -63,6 +67,7 @@ def prepare_subset(subset, window_size=30, rul_cap=125, train_stride=1, split_se
     return {
         "train_part": train_part,
         "val_part": val_part,
+        "test_part": test,
         "X_train": X_train, "y_train": y_train,
         "X_val": X_val, "y_val": y_val,
         "X_test": X_test,
